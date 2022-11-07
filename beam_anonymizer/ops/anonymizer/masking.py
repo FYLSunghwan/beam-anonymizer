@@ -10,10 +10,11 @@ class Masking(Anonymizer):
         self.align_left = align_left
 
     def anonymize(self, item: str):
+        item_str = str(item)
         if self.align_left:
-            annonymized = "*" * min(self.max_mask_len, len(item)) + item[self.max_mask_len :]
+            annonymized = "*" * min(self.max_mask_len, len(item_str)) + item_str[self.max_mask_len :]
         else:
-            reverse_item = item[::-1]
+            reverse_item = item_str[::-1]
             annonymized = "*" * min(self.max_mask_len, len(reverse_item)) + reverse_item[self.max_mask_len :]
             annonymized = annonymized[::-1]
         return annonymized
