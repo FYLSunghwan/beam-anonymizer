@@ -12,5 +12,5 @@ class PartialSuppression(Anonymizer):
     def anonymize(self, item: str) -> str:
         items = item.split(self.delimiter)
         if len(items) > self.max_items:
-            return self.delimiter.join(items[:self.max_items])
+            return self.delimiter.join(items[: self.max_items])
         return item
