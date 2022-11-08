@@ -8,7 +8,7 @@ class Grouping(Anonymizer):
         super().__init__(keys)
         self.boundaries = boundaries
         self.group_names = group_names
-        assert len(self.boundaries) == len(self.group_names), "Boundaries and Group Names must be same lengths."
+        assert len(self.boundaries) + 1 == len(self.group_names), "Boundaries + 1 and Group Names must be same lengths."
 
     def anonymize(self, item: str):
         from bisect import bisect_left
