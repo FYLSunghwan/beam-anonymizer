@@ -1,4 +1,4 @@
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Iterable
 
 import apache_beam as beam
 from apache_beam.pvalue import PCollection
@@ -11,7 +11,7 @@ class SortAndAggregate(beam.DoFn):
         self.key = key
         self.aggregate_fn = aggregate_fn
 
-    def process(self, element: List[Any]) -> List[List[Any]]:
+    def process(self, element: List[Any]) -> Iterable[Any]:
         element.sort(key=lambda x: getattr(x, self.key))
         batches = [element[i : i + self.min_batch] for i in range(0, len(element), self.min_batch)]
         if len(batches) > 1 and len(batches[-1]) < self.min_batch:
