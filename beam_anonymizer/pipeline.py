@@ -33,7 +33,8 @@ def main(args: argparse.Namespace, pipeline_args: List[str], save_main_session: 
         """
         Step 1. Data를 CSV로부터 불러옵니다.
         """
-        dataframe = p | "ReadCSV" >> read_csv(args.input_csv_path)
+        dataframe = p | "ReadCSV" >> read_csv(args.input_csv_path, usecols=lambda x: x.replace(" ", "_"))
+        dataframe = dataframe.rename(columns=lambda x: x.replace(" ", "_"))
         input_pcoll = to_pcollection(dataframe)
 
         """
@@ -50,7 +51,7 @@ def main(args: argparse.Namespace, pipeline_args: List[str], save_main_session: 
                 )
             )
             | "Masking" >> beam.ParDo(Masking(["이름"], max_mask_len=2, align_left=False))
-            | "Rounding" >> beam.ParDo(Rounding(["월 근로소득"], 10000))
+            | "Rounding" >> beam.ParDo(Rounding(["월_근로소득"], 10000))
         )
 
         """
@@ -61,17 +62,17 @@ def main(args: argparse.Namespace, pipeline_args: List[str], save_main_session: 
         """
         Step 4. 결과를 저장합니다.
         """
-        header_items = list(dataframe.keys())
+        header_items = [item.replace("_", " ") for item in list(dataframe.keys())]
         header = ",".join(header_items)
         (
             anonymized
             | "DumpCSV" >> beam.Map(lambda x: ",".join([str(getattr(x, key, "")) for key in header_items]))
             | "WriteCSV" >> beam.io.WriteToText(args.output_name_prefix, header=header, file_name_suffix=".csv")
         )
-        k_anonymity["k_anonymity"] | "WriteKReport" >> beam.io.WriteToText(
+        k_anonymity["top_duplicates"] | "WriteKReport" >> beam.io.WriteToText(
             args.report_name_prefix + "_k", file_name_suffix=".txt"
         )
-        k_anonymity["distribution"] | "WriteDistReport" >> beam.io.WriteToText(
+        k_anonymity["distribution"] | "WriteKDistribution" >> beam.io.WriteToText(
             args.report_name_prefix + "_kdist", file_name_suffix=".txt"
         )
 

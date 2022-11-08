@@ -30,13 +30,16 @@ class GetKAnonymity(PTransform):
         """
         quasi_keyed = pcoll | "QuasiIdentifiersToKey" >> beam.ParDo(QuasiIdentifiersToKey(self.quasi_identifiers))
         duplicates = quasi_keyed | "CountSameQuasiIdentifiers" >> beam.combiners.Count.PerKey()
-        k_anonymity = duplicates | "MinimumKAnonymity" >> beam.combiners.Top.Of(10, key=lambda x: x[1], reverse=True)
+        top_duplicates = duplicates | "MinimumKAnonymity" >> beam.combiners.Top.Of(10, key=lambda x: x[1], reverse=True)
         distribution = (
             duplicates
             | "KvSwap" >> beam.KvSwap()
             | "GroupByKey" >> beam.GroupByKey()
-            | "FilterHighKAnonymity" >> beam.Filter(lambda x: x[0] < 100)
-            | "FormatK" >> beam.Map(lambda x: f"K: {x[0]}, Count: {len(x[1])}")
+            | "FilterHighKAnonymity" >> beam.Filter(lambda x: x[0] < 200)
+            | "CountItems" >> beam.Map(lambda x: (x[0], len(x[1])))
+            | "ToList" >> beam.transforms.combiners.ToList()
+            | "Sort" >> beam.Map(lambda x: sorted(x, key=lambda y: y[0]))
+            | "Format" >> beam.Map(lambda x: "\n".join([f"K{item[0]}\t{item[1]}" for item in x]))
         )
 
-        return {"k_anonymity": k_anonymity, "distribution": distribution}
+        return {"top_duplicates": top_duplicates, "distribution": distribution}
