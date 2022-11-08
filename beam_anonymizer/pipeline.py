@@ -7,7 +7,7 @@ from apache_beam.dataframe.io import read_csv
 from apache_beam.options.pipeline_options import PipelineOptions, SetupOptions
 
 from beam_anonymizer.ops import GetKAnonymity
-from beam_anonymizer.ops.anonymizer import Grouping
+from beam_anonymizer.ops.anonymizer import Grouping, Masking, Rounding
 
 # fmt: off
 parser = argparse.ArgumentParser()
@@ -39,12 +39,24 @@ def main(args: argparse.Namespace, pipeline_args: List[str], save_main_session: 
         """
         Step 2. 데이터를 익명화합니다.
         """
-        anonymized = input_pcoll | beam.ParDo(Grouping(["직업분류코드"], [5, 7, 15], ["노", "예", "호"]))
+        anonymized = (
+            input_pcoll
+            | "Grouping"
+            >> beam.ParDo(
+                Grouping(
+                    ["만나이"],
+                    boundaries=[13, 16, 19, 22, 26, 29, 39],
+                    group_names=["-13", "14-16", "17-19", "20-22", "23-26", "27-29", "30-39", "40-"],
+                )
+            )
+            | "Masking" >> beam.ParDo(Masking(["이름"], max_mask_len=2, align_left=False))
+            | "Rounding" >> beam.ParDo(Rounding(["월 근로소득"], 10000))
+        )
 
         """
         Step 3. K-익명성을 구합니다.
         """
-        k_anonymity = anonymized | GetKAnonymity(["주소", "성별"])
+        k_anonymity = anonymized | GetKAnonymity(["이름", "성별"])
 
         """
         Step 4. 결과를 저장합니다.
